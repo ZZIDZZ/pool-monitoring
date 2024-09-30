@@ -4,6 +4,17 @@
 #include <SoftwareSerial.h>
 #include <stdlib.h>
 
+#include <OneWire.h>
+#include <DallasTemperature.h>
+
+#define ONE_WIRE_BUS 4
+
+// Setup a oneWire instance to communicate with any OneWire devices
+OneWire oneWire(ONE_WIRE_BUS);
+
+// Pass our oneWire reference to Dallas Temperature sensor 
+DallasTemperature sensors(&oneWire);
+
 // Initialize SoftwareSerial for ESP8266
 SoftwareSerial ESP8266(3, 2); // RX, TX
 
@@ -13,6 +24,7 @@ LiquidCrystal_I2C lcd(0x27, 20, 4); // Adjust for your display
 // Define pins for ultrasonic sensor
 const int trigPin = 7;
 const int echoPin = 8;
+const int pHPin = A0;
 
 // Convert microseconds to inches
 long microsecondsToInches(long microseconds) {
@@ -41,6 +53,9 @@ void setup() {
   // Begin serial communication at 115200 bps
   Serial.begin(115200);
   ESP8266.begin(115200);  // Uncomment for ESP8266 usage
+
+  // temperature 
+  sensors.begin();
   
   Serial.println("System Initialized");
 }
@@ -49,6 +64,7 @@ void loop() {
   static int iterationCount = 0; // Counter to track the number of iterations
   static long distanceSum = 0; // Accumulator for the distances
   long duration, inches, cm;
+  long phValue;
   float averageDistance;
 
   // Trigger the measurement
@@ -84,9 +100,25 @@ void loop() {
     lcd.print(averageDistance, 1); // Print one decimal place
     lcd.print(" cm    "); // Extra spaces to clear previously displayed characters
 
+    ESP8266.println(int(averageDistance));
+
     // Reset the accumulator and counter
     distanceSum = 0;
   }
+
+  phValue = analogRead(pHPin);
+  Serial.println("pH: ");
+  Serial.print(phValue);
+  Serial.println();
+
+  //  temperature read
+  sensors.requestTemperatures(); 
+  
+  Serial.print("Celsius temperature: ");
+  // Why "byIndex"? You can have more than one IC on the same bus. 0 refers to the first IC on the wire
+  Serial.print(sensors.getTempCByIndex(0)); 
+  Serial.print(" - Fahrenheit temperature: ");
+  Serial.println(sensors.getTempFByIndex(0));
   
   // Delay a little before the next reading
   delay(500);
