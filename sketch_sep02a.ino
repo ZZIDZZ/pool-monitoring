@@ -1,125 +1,105 @@
+#define BLYNK_TEMPLATE_ID "TMPL6EHzskoIV"
+#define BLYNK_TEMPLATE_NAME "embedded"
+#define BLYNK_AUTH_TOKEN "C2UCxAoghZVDQNRI9Lc486CdmpQsGxJr"
+char auth[] = "C2UCxAoghZVDQNRI9Lc486CdmpQsGxJr";
+
+#include <WiFi.h>
+#include <WiFiClient.h>
+#include <BlynkSimpleEsp32.h>
+#include <NewPing.h>
 #include <LiquidCrystal_I2C.h>
-#include <Wire.h>
-
-#include <SoftwareSerial.h>
-#include <stdlib.h>
-
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
-#define ONE_WIRE_BUS 4
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+// Your Wi-Fi credentials
+const char* ssid = "Afano8";
+const char* pass = "jangkrik2022";
+
+// Your Blynk authentication token
+
+const int oneWireBus = 5;    
 
 // Setup a oneWire instance to communicate with any OneWire devices
-OneWire oneWire(ONE_WIRE_BUS);
+OneWire oneWire(oneWireBus);
 
 // Pass our oneWire reference to Dallas Temperature sensor 
 DallasTemperature sensors(&oneWire);
 
-// Initialize SoftwareSerial for ESP8266
-SoftwareSerial ESP8266(3, 2); // RX, TX
+// Define the GPIO pins for the ultrasonic sensor
+#define trigPin 2
+#define echoPin 4
 
-// Initialize the LCD
-LiquidCrystal_I2C lcd(0x27, 20, 4); // Adjust for your display
-
-// Define pins for ultrasonic sensor
-const int trigPin = 7;
-const int echoPin = 8;
-const int pHPin = A0;
-
-// Convert microseconds to inches
-long microsecondsToInches(long microseconds) {
-  return microseconds / 74 / 2; // 1130 feet per second
-}
-
-// Convert microseconds to centimeters
-long microsecondsToCentimeters(long microseconds) {
-  return microseconds / 29 / 2; // 340 meters per second
-}
+// Create an instance of the NewPing library
+NewPing sonar(trigPin, echoPin);
 
 void setup() {
-  // Initialize pins for ultrasonic sensor
+  Serial.begin(115200);
+  Serial.println("System Initializing...");
+
+
+  Blynk.begin(auth, ssid, pass);
+
   pinMode(trigPin, OUTPUT);
   pinMode(echoPin, INPUT);
-  
-  // Initialize and clear LCD
+
   lcd.init();
   lcd.backlight();
+  //Setup Awal Ketika Running
+  lcd.setCursor(2,0);
+  lcd.print("KELAS");
+  lcd.setCursor(0,1);
+  lcd.print("SISTEM TERTANAM");
+  delay(4000);
   lcd.clear();
-  lcd.setCursor(3,0);
-  lcd.print("Hello, world!");
-  lcd.setCursor(2,1);
-  lcd.print("Ywrobot Arduino!");
 
-  // Begin serial communication at 115200 bps
-  Serial.begin(115200);
-  ESP8266.begin(115200);  // Uncomment for ESP8266 usage
 
-  // temperature 
   sensors.begin();
+
   
   Serial.println("System Initialized");
+
+
 }
 
 void loop() {
-  static int iterationCount = 0; // Counter to track the number of iterations
-  static long distanceSum = 0; // Accumulator for the distances
-  long duration, inches, cm;
-  long phValue;
-  float averageDistance;
+  Blynk.run();
 
-  // Trigger the measurement
+  // Trigger an ultrasonic pulse
   digitalWrite(trigPin, LOW);
   delayMicroseconds(2);
   digitalWrite(trigPin, HIGH);
   delayMicroseconds(10);
   digitalWrite(trigPin, LOW);
 
-  // Read the echo
-  duration = pulseIn(echoPin, HIGH);
+  // Measure the distance
+  unsigned int distance_cm = sonar.ping_cm();
+  unsigned int distance_mm = (distance_cm*10);
 
-  // Calculate distance
-  inches = microsecondsToInches(duration);
-  cm = microsecondsToCentimeters(duration);
+  // Send the distance data to Blynk
+  Blynk.virtualWrite(V1, distance_cm);  // Use V1 as a display widget in your Blynk app
+  
+  Serial.print("Stem Displacement: ");
+  Serial.print(distance_cm);
+  Serial.println(" mm");
 
-  // Accumulate the distance
-  distanceSum += cm;
-  iterationCount++;
+  lcd.clear();
+  lcd.setCursor(2,0);
+  lcd.print("DIST");
+  lcd.setCursor(3,1);
+  lcd.print(distance_mm);
+  delay(400);
 
-  // Print the results to the serial monitor
-  Serial.print(inches);
-  Serial.print(" in, ");
-  Serial.print(cm);
-  Serial.println(" cm");
-
-  // Compute and display the average distance every 5 iterations
-  if (iterationCount % 5 == 0) {
-    averageDistance = distanceSum / 5.0; // Compute average distance
-    lcd.clear();
-    lcd.setCursor(3, 0); // Position at fourth row
-    lcd.print("Avg Dist: ");
-    lcd.print(averageDistance, 1); // Print one decimal place
-    lcd.print(" cm    "); // Extra spaces to clear previously displayed characters
-
-    ESP8266.println(int(averageDistance));
-
-    // Reset the accumulator and counter
-    distanceSum = 0;
-  }
-
-  phValue = analogRead(pHPin);
-  Serial.println("pH: ");
-  Serial.print(phValue);
-  Serial.println();
-
-  //  temperature read
   sensors.requestTemperatures(); 
-  
-  Serial.print("Celsius temperature: ");
-  // Why "byIndex"? You can have more than one IC on the same bus. 0 refers to the first IC on the wire
-  Serial.print(sensors.getTempCByIndex(0)); 
-  Serial.print(" - Fahrenheit temperature: ");
-  Serial.println(sensors.getTempFByIndex(0));
-  
-  // Delay a little before the next reading
-  delay(500);
+  float temperatureC = sensors.getTempCByIndex(0);
+  float temperatureF = sensors.getTempFByIndex(0);
+  Serial.print(temperatureC);
+  Serial.println("ºC");
+  Serial.print(temperatureF);
+  Serial.println("ºF");
+
+  Blynk.virtualWrite(V2, temperatureC);  // Use V1 as a display widget in your Blynk app
+
+
+  delay(1000); // Delay between measurements
 }
