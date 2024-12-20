@@ -65,6 +65,8 @@ E -[-> ModulLCD : SDA, SCL (I2C)
 @enduml
 ```
 
+![diagram component](Diagram.png "Component Diagram")
+
 ## Konfigurasi Kode
 ### Kredensial Wi-Fi
 Ganti placeholder di kode dengan kredensial Wi-Fi Anda:

@@ -1,0 +1,59 @@
+@startuml
+title IoT Kolam Component Diagram
+
+component "ESP32 Controller" as ESP32 {
+  port pTempSensor_GPIO5
+  port pPHSensor_GPIO34
+  port pUltraTrig_GPIO2
+  port pUltraEcho_GPIO4
+  port pRelay1_GPIO25
+  port pRelay2_GPIO26
+  portout poLCD_I2C
+  portout poWiFi_Connection
+  component "Internal Processor" as Processor
+}
+
+component "Sensor Suhu (DS18B20)" as TempSensor
+component "Sensor pH" as PHSensor
+component "Sensor Ultrasonik (HC-SR04)" as UltraSensor {
+  portin trig_GPIO2
+  portout echo_GPIO4
+}
+component "Relay 1" as Relay1
+component "Relay 2" as Relay2
+component "LCD 16x2" as LCD {
+  portin SDA
+  portin SCL
+}
+component "Wi-Fi Network" as WiFi {
+  portout connection
+}
+component "Blynk Dashboard" as BlynkDashboard {
+  portin syncData
+}
+component "Blynk Server" as BlynkServer {
+  portin transferData
+}
+
+ESP32 --> pTempSensor_GPIO5
+ESP32 --> pPHSensor_GPIO34
+ESP32 --> pUltraTrig_GPIO2
+ESP32 --> pUltraEcho_GPIO4
+ESP32 --> pRelay1_GPIO25
+ESP32 --> pRelay2_GPIO26
+ESP32 --> poLCD_I2C
+ESP32 --> poWiFi_Connection
+
+pTempSensor_GPIO5 -> TempSensor
+pPHSensor_GPIO34 -> PHSensor
+pUltraTrig_GPIO2 -> UltraSensor: trig_GPIO2
+pUltraEcho_GPIO4 <- UltraSensor: echo_GPIO4
+pRelay1_GPIO25 --> Relay1
+pRelay2_GPIO26 --> Relay2
+poLCD_I2C -> LCD : SDA, SCL
+poWiFi_Connection -> WiFi : connection
+
+WiFi --> BlynkDashboard : syncData
+BlynkDashboard -> BlynkServer : transferData
+
+@enduml
